@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+# GNU GENERAL PUBLIC LICENSE
+# Version 3, 29 June 2007
+# See LICENSE file bundled with this file
+
+# This program is inspired by an article wrote by Tristan Colombo for a French magazine called "Linux Magazine France" and then,
+# in another issue of the same magazine, a rewrote version by Alban Mancheron was presented.
+# I retained the initial concept; however, I modified it for my personal purposes and rewrote it in accordance with my preferences.
+# You can find the original and reworked versions here
+# https://github.com/tcolombo/history-guardian
+# and there
+# https://gite.lirmm.fr/doccy/history-guardian/
+
+script_location="$(dirname $(realpath "${0}"))"
+if [ "${actual_location}" = "/usr/bin/" ]; then
+    actual_location="/usr/share/history-guardian"
+else
+    actual_location="${script_location}"
+fi
+
+
+function print_message() {
+    if [ "${actual_location}" = "/usr/bin/" ]; then
+        echo "History Guardian is installed, using installation directory"
+    else
+        echo "History Guardian is not installed on your system"
+        echo "It may come from git and then all scripts are at the same place:"
+        echo "  ${script_location}"
+    fi
+
+    echo ""
+    echo ""
+    echo "This script is an empty shell to show you how to use History Guardian"
+    echo ""
+    echo "To be able to use history guardian, you need to source it in your .bashrc file."
+    echo ""
+    echo "Here is an example code you need to copy in your .bashrc file."
+    echo "To get only the following example code, call this script with --bashrc option"
+}
+
+function print_code(){
+    echo ""
+    echo "# Source History Guardian script to enable per-project history"
+    echo "if [ -f \"${actual_location}/activate\"]; then"
+    echo "    # Uncomment and change value to set option"
+    echo "    #HISTORY_GUARDIAN_ENABLED=false  # history guardian is enabled by default"
+    echo "    #HISTORY_GUARDIAN_HISTORY_FILE_NAME=.history  # defaults to .history"
+    echo "    #HISTORY_GUARDIAN_PROPOSE_ON_PROJECTS=false  # history guardian propose to init on git directories"
+    echo ""
+    echo "    # Actually add history guardian to shell"
+    echo "    source \"${actual_location}/activate\""
+    echo "fi"
+    echo ""
+}
+
+case "${1}" in
+    --bashrc)  print_code;;
+    *)     print_message; print_code;;
+esac

@@ -1,0 +1,302 @@
+#!/usr/bin/env bash
+
+# GNU GENERAL PUBLIC LICENSE
+# Version 3, 29 June 2007
+# See LICENSE file bundled with this file
+
+# This program is inspired by an article wrote by Tristan Colombo for a French magazine called "Linux Magazine France" and then,
+# in another issue of the same magazine, a rewrote version by Alban Mancheron was presented.
+# I retained the initial concept; however, I modified it for my personal purposes and rewrote it in accordance with my preferences.
+# You can find the original and reworked versions here
+# https://github.com/tcolombo/history-guardian
+# and there
+# https://gite.lirmm.fr/doccy/history-guardian/
+
+
+# Prevent direct execution of this script
+if [ "${0}" = "${BASH_SOURCE[0]}" ]; then
+    echo "This script has to be sourced and not executed directly."
+    echo "Exiting"
+    exit 1
+fi
+
+# Use the given file as history file
+# ${1} : Absolute path of the local history file
+function _hg_set_history_file() {
+    #!FIXME: Do I add logging in previous history?
+    # set -o history
+    # history -s "echo 'switched to a history-guardian managed directory'"
+    # set +o history
+
+    # add non saved history elements
+    history -a
+
+    HISTORY_GUARDIAN_CURRENT_HISTORY_FILE="${1}"
+    unset HISTFILE
+    export HISTFILE="${1}"
+    # Original code says "-R" which does not exist
+    history -c
+    history -r
+}
+
+# Moving to global history mode
+function _hg_switch_to_global() {
+    if [ "${HISTORY_GUARDIAN_CURRENT_HISTORY_FILE}" != "${HISTORY_GUARDIAN_GLOBAL_HISTORY_FILE}" ]; then
+        echo 'Global history activated!'
+        _hg_set_history_file "${HISTORY_GUARDIAN_GLOBAL_HISTORY_FILE}"
+    fi
+}
+
+# Moving to per dir history mode
+function _hg_switch_to_dir() {
+    if [ "${1}" != "${HISTORY_GUARDIAN_CURRENT_HISTORY_FILE}" ]; then
+        if [ "${HISTORY_GUARDIAN_PRIVATE_MODE}" = "true" ]; then
+            echo "Private mode: history will be kept only for this session (no persistence)"
+        else
+            echo 'Per Directory history activated!'
+            echo "history file will be: ${1}"
+            HISTORY_GUARDIAN_CURRENT_PROJECT_NAME="$(echo \"${1}\" | rev | cut -d '/' -f 2 | rev)"
+        fi
+        _hg_set_history_file "${1}"
+    fi
+}
+
+# function that check current state and set things accordingly
+function _hg_update_state() {
+    if [ "${HISTORY_GUARDIAN_ENABLED}" = "true" ]; then
+        if [ "${HISTORY_GUARDIAN_PRIVATE_MODE}" = "true" ]; then
+            _hg_switch_to_dir "${HISTORY_GUARDIAN_PRIVATE_HISTORY_FILE}"
+        else
+            # Recursively find history file upward
+            DIR="${PWD}"
+            while
+            history_file=$(find "$DIR"/ -maxdepth 1 -name "${HISTORY_GUARDIAN_HISTORY_FILE_NAME}" -type f)
+            #echo "Debugging upfind - search in $DIR gives: $history_file"
+            [ -z $history_file ] && [ "$DIR" != "/" ]
+            do DIR=$(dirname "$DIR"); done
+
+            # depending on history, then switch to right mode
+            if [ -n "${history_file}" ]; then
+                #echo "switch to dir: ${history_file}"
+                _hg_switch_to_dir "${history_file}"
+            else
+                #echo "switch to global"
+                _hg_switch_to_global
+            fi
+        fi
+    else
+        echo "History Guardian is currently disabled; falling back on global history!"
+        _hg_switch_to_global
+    fi
+}
+
+# Redifine cd to call update state at the right location
+function _hg_cd() {
+    # First: trigger actual cd command
+    \cd "${@}"
+    # Then handle the local history existence
+    _hg_update_state
+}
+
+# Redifine pushd to call update state at the right location
+function _hg_pushd() {
+    # First: trigger actual pushd command
+    \pushd "${@}"
+    # Then handle the local history existence
+    _hg_update_state
+}
+
+# Redifine popd to call update state at the right location
+function _hg_popd() {
+    # First: trigger actual popd command
+    \popd "${@}"
+    # Then handle the local history existence
+    _hg_update_state
+}
+
+# init a directory with a local history file
+function _hg_init_dir() {
+    if [ ! -f "${HISTORY_GUARDIAN_HISTORY_FILE_NAME}" ]; then
+        touch "${HISTORY_GUARDIAN_HISTORY_FILE_NAME}"
+    fi
+
+    _hg_update_state
+}
+
+# remove local history file
+function _hg_clean_dir() {
+    if [ "${HISTORY_GUARDIAN_GLOBAL_HISTORY_FILE}" != "${HISTORY_GUARDIAN_CURRENT_HISTORY_FILE}" ]; then
+        rm -f "${HISTORY_GUARDIAN_CURRENT_HISTORY_FILE}"
+    fi
+
+    _hg_update_state
+}
+
+function _hg_print_boolean() {
+    if [ "${2}" = "true" ]; then
+        echo "${1}: true"
+    else
+        echo "${1}: false"
+    fi
+}
+
+function _hg_print_status() {
+    echo "Local History file name: ${HISTORY_GUARDIAN_HISTORY_FILE_NAME}"
+    _hg_print_boolean "History Guardian is activated" "${HISTORY_GUARDIAN_ENABLED}"
+    _hg_print_boolean "Private mode is activated (no persistance)" "${HISTORY_GUARDIAN_PRIVATE_MODE}"
+    _hg_print_boolean "Advertise to init in project dir" "${HISTORY_GUARDIAN_PROPOSE_ON_PROJECT}"
+    echo ""
+    echo "Current history file: ${HISTORY_GUARDIAN_CURRENT_HISTORY_FILE}"
+    echo "Global history file: ${HISTORY_GUARDIAN_GLOBAL_HISTORY_FILE}"
+}
+
+# help function for history-guardian
+function _hg_history_guardian_usage() {
+    echo "Usage: history-guardian <init|clean|clear|status|enable|disable|private|public|clean-private-sessions>"
+    echo "       - init: activate per directory history mode for the current directory (creating local history file if needed)"
+    echo "       - clean/clear:  delete local history and update history state accordingly"
+    echo ""
+    echo "       - status: prints usefull information about current state of history-guardian"
+    echo ""
+    echo "       - enable: enable history-guardian mechanism"
+    echo "       - disable: makes history-guardian not effective (almost like it is not activated)"
+    echo ""
+    echo "       - private: use a not persistent history file (perfect for typing commands with passwords); history will be kept until returning to public mode"
+    echo "       - public: use the persistent history files as expected (mandatory when switching to private mode)"
+    echo "       - clean-private-sessions: remove all history files for any private session (usefull if terminal got killed before switching back to public)"
+}
+
+function _hg_enable() {
+    HISTORY_GUARDIAN_ENABLED=true
+
+    _hg_update_state
+}
+
+function _hg_disable() {
+    HISTORY_GUARDIAN_ENABLED=false
+
+    _hg_update_state
+}
+
+function _hg_set_private_mode() {
+    HISTORY_GUARDIAN_PRIVATE_MODE=true
+    # create a temp file that does not exists and keep it for history
+    HISTORY_GUARDIAN_PRIVATE_HISTORY_FILE=$(mktemp --suffix="--history-guardian")
+
+    # copy current history so it's not empty
+    cat "${HISTORY_GUARDIAN_CURRENT_HISTORY_FILE}" > "${HISTORY_GUARDIAN_PRIVATE_HISTORY_FILE}"
+    echo "# Above things are copied from previous history" >> "${HISTORY_GUARDIAN_PRIVATE_HISTORY_FILE}"
+    # Register action to revert to public in history
+    echo "history-guardian clean-private-sessions" >> "${HISTORY_GUARDIAN_PRIVATE_HISTORY_FILE}"
+    echo "# Use above entry to remove all private history" >> "${HISTORY_GUARDIAN_PRIVATE_HISTORY_FILE}"
+    echo "history-guardian public" >> "${HISTORY_GUARDIAN_PRIVATE_HISTORY_FILE}"
+    echo "# This history will not be saved! Use above entry to revert to public." >> "${HISTORY_GUARDIAN_PRIVATE_HISTORY_FILE}"
+    _hg_update_state
+
+}
+
+function _hg_set_public_mode() {
+    HISTORY_GUARDIAN_PRIVATE_MODE=false
+
+    _hg_update_state
+
+    rm -f "${HISTORY_GUARDIAN_PRIVATE_HISTORY_FILE}"
+    HISTORY_GUARDIAN_PRIVATE_HISTORY_FILE=""
+}
+
+function _hg_clean_private_sessions() {
+    HISTORY_GUARDIAN_PRIVATE_MODE=false
+    _hg_update_state
+
+    # rm all the possible private temp files
+    find $(dirname $(mktemp -u)) -name "*--history-guardian*" 2> /dev/null | xargs rm -f
+}
+
+function _hg_show_msg() {
+    if [ "${HISTORY_GUARDIAN_ENABLED}" = "true" ]; then
+        if [ "${HISTORY_GUARDIAN_PRIVATE_MODE}" = "true" ]; then
+            echo "/!\\ history-guardian: private session (no persistence)."
+            echo "Exit private session using 'history-guardian public' command (see history)."
+        else
+            if [ "${HISTORY_GUARDIAN_GLOBAL_HISTORY_FILE}" != "${HISTORY_GUARDIAN_CURRENT_HISTORY_FILE}" ]; then
+                echo "Saving history only for project: ${HISTORY_GUARDIAN_CURRENT_PROJECT_NAME}"
+            fi
+        fi
+    else
+        # Not sure it's good to display a message if thing is disabled
+        echo "/!\\ history-guardian: disabled"
+    fi
+}
+
+# main script to help user init, clear, etc
+function _hg_history_guardian() {
+    case "${1}" in
+        init)  _hg_init_dir;;
+        clear)   _hg_clean_dir;;
+        clean)   _hg_clean_dir;;
+
+        status)   _hg_print_status;;
+        enable)   _hg_enable;;
+        disable)  _hg_disable;;
+
+        private)  _hg_set_private_mode;;
+        public)   _hg_set_public_mode;;
+        clean-private-sessions)  _hg_clean_private_sessions;;
+
+        help)  echo "Not Yet Implemented";;
+        *)     _hg_history_guardian_usage;;
+    esac
+}
+
+# Source this in your bashrc to enable commands
+if [ -z "${HISTORY_GUARDIAN_ACTIVATED}" ]; then
+    readonly HISTORY_GUARDIAN_ACTIVATED=true
+
+    # As we source, we do need the BASH_SOURCE
+    readonly HISTORY_GUARDIAN_DIR=$(dirname "$(readlink -m "${BASH_SOURCE[0]}")")
+    readonly HISTORY_GUARDIAN_GLOBAL_HISTORY_FILE="${HISTFILE}"
+    # This will be the current history file to save to, helps to handle directory moving, etc.
+    HISTORY_GUARDIAN_CURRENT_HISTORY_FILE=""
+    HISTORY_GUARDIAN_CURRENT_PROJECT_NAME=""
+
+    # Private session stuff
+    HISTORY_GUARDIAN_PRIVATE_MODE=false
+    HISTORY_GUARDIAN_PRIVATE_HISTORY_FILE=""
+
+
+    if [ -z ${HISTORY_GUARDIAN_HISTORY_FILE_NAME+x} ]; then
+        export HISTORY_GUARDIAN_HISTORY_FILE_NAME=.history
+    fi
+    if [ -z ${HISTORY_GUARDIAN_ENABLED+x} ]; then
+        export HISTORY_GUARDIAN_ENABLED=true
+    fi
+    if [ -z ${HISTORY_GUARDIAN_PROPOSE_ON_PROJECT+x} ]; then
+        export HISTORY_GUARDIAN_PROPOSE_ON_PROJECT=true
+    fi
+
+    # define aliases to our commands
+    alias history-guardian='_hg_history_guardian'
+    complete -W "init clear status enable disable help public private clean-private-sessions" history-guardian
+    alias cd='_hg_cd'
+    alias pushd='_hg_pushd'
+    alias popd='_hg_popd'
+
+    # setopt is zsh
+    # shopt is bash
+
+    # Use append mode for history
+    #setopt      appendhistory
+    shopt       -s histappend
+
+    # Share history between terminals
+    #setopt      sharedhistory
+
+    # Add commands directly inside history (not at terminal close)
+    #setopt      incappendhistory
+    export PROMPT_COMMAND="history -a;history -n;_hg_show_msg;$PROMPT_COMMAND"
+
+    # Ensure current mode is valid:
+    _hg_update_state
+    # or, to check on every command the current state:
+    # export PROMPT_COMMAND="_hg_update_state;$PROMPT_COMMAND"
+fi
