@@ -13,7 +13,7 @@
 # https://gite.lirmm.fr/doccy/history-guardian/
 
 script_location="$(dirname $(realpath "${0}"))"
-if [ "${actual_location}" = "/usr/bin/" ]; then
+if [ "${script_location}" = "/usr/bin" ]; then
     actual_location="/usr/share/history-guardian"
 else
     actual_location="${script_location}"
@@ -21,7 +21,7 @@ fi
 
 
 function print_message() {
-    if [ "${actual_location}" = "/usr/bin/" ]; then
+    if [ "${script_location}" = "/usr/bin" ]; then
         echo "History Guardian is installed, using installation directory"
     else
         echo "History Guardian is not installed on your system"
