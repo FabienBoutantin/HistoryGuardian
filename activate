@@ -287,7 +287,7 @@ if [ -z "${HISTORY_GUARDIAN_ACTIVATED}" ]; then
 
 
     if [ -z ${HISTORY_GUARDIAN_HISTORY_FILE_NAME+x} ]; then
-        export HISTORY_GUARDIAN_HISTORY_FILE_NAME=.history
+        export HISTORY_GUARDIAN_HISTORY_FILE_NAME=.hg_history
     fi
     if [ -z ${HISTORY_GUARDIAN_ENABLED+x} ]; then
         export HISTORY_GUARDIAN_ENABLED=true
@@ -319,7 +319,9 @@ if [ -z "${HISTORY_GUARDIAN_ACTIVATED}" ]; then
 
     # Add commands directly inside history (not at terminal close)
     #setopt      incappendhistory
-    export PROMPT_COMMAND="history -a;history -n;_hg_show_msg;$PROMPT_COMMAND"
+    # TODO: fixme: if history -n, then clear command does not work
+    #export PROMPT_COMMAND="history -a;history -n;_hg_show_msg;$PROMPT_COMMAND"
+    export PROMPT_COMMAND="history -a;_hg_show_msg;$PROMPT_COMMAND"
 
     # Ensure current mode is valid:
     _hg_update_state
