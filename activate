@@ -82,6 +82,21 @@ function _hg_update_state() {
             else
                 #echo "switch to global"
                 _hg_switch_to_global
+                if [ "${HISTORY_GUARDIAN_PROPOSE_ON_PROJECT}" = "true" ]; then
+                    # Recursively find .git dir upward
+                    DIR="${PWD}"
+                    while
+                    _git_dir=$(find "$DIR"/ -maxdepth 1 -name ".git" -type d)
+                    #echo "Debugging upfind - search in $DIR gives: $_git_dir"
+                    [ -z $_git_dir ] && [ "$DIR" != "/" ]
+                    do DIR=$(dirname "$DIR"); done
+                    if [ -n "${_git_dir}" ]; then
+                        echo "---"
+                        echo "You're in a git project."
+                        echo "You can activate per project history: history-guardian init"
+                    fi
+                    unset _git_dir
+                fi
             fi
         fi
     else
@@ -320,8 +335,7 @@ if [ -z "${HISTORY_GUARDIAN_ACTIVATED}" ]; then
     # Add commands directly inside history (not at terminal close)
     #setopt      incappendhistory
     # TODO: fixme: if history -n, then clear command does not work
-    #export PROMPT_COMMAND="history -a;history -n;_hg_show_msg;$PROMPT_COMMAND"
-    export PROMPT_COMMAND="history -a;_hg_show_msg;$PROMPT_COMMAND"
+    export PROMPT_COMMAND="history -a;history -n;_hg_show_msg;$PROMPT_COMMAND"
 
     # Ensure current mode is valid:
     _hg_update_state
