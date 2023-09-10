@@ -145,6 +145,7 @@ function _hg_print_status() {
     _hg_print_boolean "History Guardian is activated" "${HISTORY_GUARDIAN_ENABLED}"
     _hg_print_boolean "Private mode is activated (no persistance)" "${HISTORY_GUARDIAN_PRIVATE_MODE}"
     _hg_print_boolean "Advertise to init in project dir" "${HISTORY_GUARDIAN_PROPOSE_ON_PROJECT}"
+    _hg_print_boolean "Show message after each command" "${HISTORY_GUARDIAN_PRINT_MESSAGE_AT_EACH_COMMAND}"
     echo ""
     echo "Current history file: ${HISTORY_GUARDIAN_CURRENT_HISTORY_FILE}"
     echo "Global history file: ${HISTORY_GUARDIAN_GLOBAL_HISTORY_FILE}"
@@ -160,6 +161,9 @@ function _hg_history_guardian_usage() {
     echo ""
     echo "       - enable: enable history-guardian mechanism"
     echo "       - disable: makes history-guardian not effective (almost like it is not activated)"
+    echo ""
+    echo "       - verbose: print message after each command"
+    echo "       - quiet: do not print message after each command (remove verbose action)"
     echo ""
     echo "       - private: use a not persistent history file (perfect for typing commands with passwords); history will be kept until returning to public mode"
     echo "       - public: use the persistent history files as expected (mandatory when switching to private mode)"
@@ -212,19 +216,34 @@ function _hg_clean_private_sessions() {
     find $(dirname $(mktemp -u)) -name "*--history-guardian*" 2> /dev/null | xargs rm -f
 }
 
+function _hg_verbose(){
+    HISTORY_GUARDIAN_PRINT_MESSAGE_AT_EACH_COMMAND=true
+}
+
+function _hg_quiet(){
+    HISTORY_GUARDIAN_PRINT_MESSAGE_AT_EACH_COMMAND=false
+}
+
 function _hg_show_msg() {
     if [ "${HISTORY_GUARDIAN_ENABLED}" = "true" ]; then
         if [ "${HISTORY_GUARDIAN_PRIVATE_MODE}" = "true" ]; then
+            echo "---"
             echo "/!\\ history-guardian: private session (no persistence)."
             echo "Exit private session using 'history-guardian public' command (see history)."
         else
-            if [ "${HISTORY_GUARDIAN_GLOBAL_HISTORY_FILE}" != "${HISTORY_GUARDIAN_CURRENT_HISTORY_FILE}" ]; then
-                echo "Saving history only for project: ${HISTORY_GUARDIAN_CURRENT_PROJECT_NAME}"
+            if [ "${HISTORY_GUARDIAN_PRINT_MESSAGE_AT_EACH_COMMAND}" = "true" ]; then
+                if [ "${HISTORY_GUARDIAN_GLOBAL_HISTORY_FILE}" != "${HISTORY_GUARDIAN_CURRENT_HISTORY_FILE}" ]; then
+                    echo "---"
+                    echo "Saving history only for project: ${HISTORY_GUARDIAN_CURRENT_PROJECT_NAME}"
+                fi
             fi
         fi
     else
         # Not sure it's good to display a message if thing is disabled
-        echo "/!\\ history-guardian: disabled"
+        if [ "${HISTORY_GUARDIAN_PRINT_MESSAGE_AT_EACH_COMMAND}" = "true" ]; then
+            echo "---"
+            echo "/!\\ history-guardian: disabled"
+        fi
     fi
 }
 
@@ -238,6 +257,9 @@ function _hg_history_guardian() {
         status)   _hg_print_status;;
         enable)   _hg_enable;;
         disable)  _hg_disable;;
+
+        verbose)  _hg_verbose;;
+        quiet)    _hg_quiet;;
 
         private)  _hg_set_private_mode;;
         public)   _hg_set_public_mode;;
@@ -273,10 +295,14 @@ if [ -z "${HISTORY_GUARDIAN_ACTIVATED}" ]; then
     if [ -z ${HISTORY_GUARDIAN_PROPOSE_ON_PROJECT+x} ]; then
         export HISTORY_GUARDIAN_PROPOSE_ON_PROJECT=true
     fi
+    if [ -z ${HISTORY_GUARDIAN_PRINT_MESSAGE_AT_EACH_COMMAND+x} ]; then
+        export HISTORY_GUARDIAN_PRINT_MESSAGE_AT_EACH_COMMAND=false
+    fi
+
 
     # define aliases to our commands
     alias history-guardian='_hg_history_guardian'
-    complete -W "init clear status enable disable help public private clean-private-sessions" history-guardian
+    complete -W "init clear status enable disable verbose quiet help public private clean-private-sessions" history-guardian
     alias cd='_hg_cd'
     alias pushd='_hg_pushd'
     alias popd='_hg_popd'

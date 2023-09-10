@@ -47,6 +47,7 @@ function print_code(){
     echo "    #HISTORY_GUARDIAN_ENABLED=false  # history guardian is enabled by default"
     echo "    #HISTORY_GUARDIAN_HISTORY_FILE_NAME=.history  # defaults to .history"
     echo "    #HISTORY_GUARDIAN_PROPOSE_ON_PROJECTS=false  # history guardian propose to init on git directories"
+    echo "    #HISTORY_GUARDIAN_PRINT_MESSAGE_AT_EACH_COMMAND=true  # history guardian prints an informative message before terminal prompt"
     echo ""
     echo "    # Actually add history guardian to shell"
     echo "    source \"${actual_location}/activate\""
