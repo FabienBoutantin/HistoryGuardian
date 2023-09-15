@@ -42,7 +42,7 @@ function print_message() {
 function print_code(){
     echo ""
     echo "# Source History Guardian script to enable per-project history"
-    echo "if [ -f \"${actual_location}/activate\"]; then"
+    echo "if [ -f \"${actual_location}/activate\" ]; then"
     echo "    # Uncomment and change value to set option"
     echo "    #HISTORY_GUARDIAN_ENABLED=false  # history guardian is enabled by default"
     echo "    #HISTORY_GUARDIAN_HISTORY_FILE_NAME=.hg_history  # defaults to .hg_history"
