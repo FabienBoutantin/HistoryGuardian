@@ -13,10 +13,33 @@
 # https://gite.lirmm.fr/doccy/history-guardian/
 
 
+# Reset
+_hg_NC='\033[0m'        # Text Reset
+
+# Regular Colors
+# _hg_Black='\033[0;30m'      # Black
+# _hg_Red='\033[0;31m'        # Red
+# _hg_Green='\033[0;32m'      # Green
+# _hg_Yellow='\033[0;33m'     # Yellow
+# _hg_Blue='\033[0;34m'       # Blue
+# _hg_Purple='\033[0;35m'     # Purple
+# _hg_Cyan='\033[0;36m'       # Cyan
+# _hg_White='\033[0;37m'      # White
+
+# Bold
+# _hg_BBlack='\033[1;30m'     # Black
+_hg_BRed='\033[1;31m'         # Red
+_hg_BGreen='\033[1;32m'       # Green
+_hg_BYellow='\033[1;33m'      # Yellow
+# _hg_BBlue='\033[1;34m'        # Blue
+_hg_BPurple='\033[1;35m'      # Purple
+_hg_BCyan='\033[1;36m'        # Cyan
+# _hg_BWhite='\033[1;37m'       # White
+
 # Prevent direct execution of this script
 if [ "${0}" = "${BASH_SOURCE[0]}" ]; then
-    echo "This script has to be sourced and not executed directly."
-    echo "Exiting"
+    echo -e "${_hg_BRed}This script has to be sourced and not executed directly.${_hg_NC}"
+    echo -e "Exiting"
     exit 1
 fi
 
@@ -42,7 +65,7 @@ function _hg_set_history_file() {
 # Moving to global history mode
 function _hg_switch_to_global() {
     if [ "${HISTORY_GUARDIAN_CURRENT_HISTORY_FILE}" != "${HISTORY_GUARDIAN_GLOBAL_HISTORY_FILE}" ]; then
-        echo 'Global history activated!'
+        echo -e "${_hg_BCyan}Global history activated!${_hg_NC}"
         _hg_set_history_file "${HISTORY_GUARDIAN_GLOBAL_HISTORY_FILE}"
     fi
 }
@@ -51,10 +74,10 @@ function _hg_switch_to_global() {
 function _hg_switch_to_dir() {
     if [ "${1}" != "${HISTORY_GUARDIAN_CURRENT_HISTORY_FILE}" ]; then
         if [ "${HISTORY_GUARDIAN_PRIVATE_MODE}" = "true" ]; then
-            echo "Private mode: history will be kept only for this session (no persistence)"
+            echo -e "${_hg_BRed}Private mode: history will be kept only for this session (no persistence)${_hg_NC}"
         else
-            echo 'Per Directory history activated!'
-            echo "history file will be: ${1}"
+            echo -e "${_hg_BGreen}Per Directory history activated!${_hg_NC}"
+            echo -e "history file will be:${_hg_NC} ${1}"
             HISTORY_GUARDIAN_CURRENT_PROJECT_NAME="$(echo \"${1}\" | rev | cut -d '/' -f 2 | rev)"
         fi
         _hg_set_history_file "${1}"
@@ -91,16 +114,16 @@ function _hg_update_state() {
                     [ -z $_git_dir ] && [ "$DIR" != "/" ]
                     do DIR=$(dirname "$DIR"); done
                     if [ -n "${_git_dir}" ]; then
-                        echo "---"
-                        echo "You're in a git project."
-                        echo "You can activate per project history: history-guardian init"
+                        echo -e "${_hg_BYellow}---"
+                        echo -e "You're in a git project."
+                        echo -e "You can activate per project history:${_hg_NC} history-guardian init"
                     fi
                     unset _git_dir
                 fi
             fi
         fi
     else
-        echo "History Guardian is currently disabled; falling back on global history!"
+        echo -e "${_hg_BYellow}History Guardian is currently disabled; falling back on global history!${_hg_NC}"
         _hg_switch_to_global
     fi
 }
@@ -149,21 +172,21 @@ function _hg_clean_dir() {
 
 function _hg_print_boolean() {
     if [ "${2}" = "true" ]; then
-        echo "${1}: true"
+        echo -e "${_hg_BGreen}${1}:${_hg_NC} true"
     else
-        echo "${1}: false"
+        echo -e "${_hg_BGreen}${1}:${_hg_NC} false"
     fi
 }
 
 function _hg_print_status() {
-    echo "Local History file name: ${HISTORY_GUARDIAN_HISTORY_FILE_NAME}"
+    echo -e "${_hg_BGreen}Local History file name:${_hg_NC} ${HISTORY_GUARDIAN_HISTORY_FILE_NAME}"
     _hg_print_boolean "History Guardian is activated" "${HISTORY_GUARDIAN_ENABLED}"
     _hg_print_boolean "Private mode is activated (no persistance)" "${HISTORY_GUARDIAN_PRIVATE_MODE}"
     _hg_print_boolean "Advertise to init in project dir" "${HISTORY_GUARDIAN_PROPOSE_ON_PROJECT}"
     _hg_print_boolean "Show message after each command" "${HISTORY_GUARDIAN_PRINT_MESSAGE_AT_EACH_COMMAND}"
     echo ""
-    echo "Current history file: ${HISTORY_GUARDIAN_CURRENT_HISTORY_FILE}"
-    echo "Global history file: ${HISTORY_GUARDIAN_GLOBAL_HISTORY_FILE}"
+    echo -e "${_hg_BGreen}Current history file:${_hg_NC} ${HISTORY_GUARDIAN_CURRENT_HISTORY_FILE}"
+    echo -e "${_hg_BGreen}Global history file:${_hg_NC} ${HISTORY_GUARDIAN_GLOBAL_HISTORY_FILE}"
 }
 
 # help function for history-guardian
@@ -242,22 +265,22 @@ function _hg_quiet(){
 function _hg_show_msg() {
     if [ "${HISTORY_GUARDIAN_ENABLED}" = "true" ]; then
         if [ "${HISTORY_GUARDIAN_PRIVATE_MODE}" = "true" ]; then
-            echo "---"
-            echo "/!\\ history-guardian: private session (no persistence)."
-            echo "Exit private session using 'history-guardian public' command (see history)."
+            echo -e "${_hg_BRed}---"
+            echo -e "/!\\ history-guardian: private session (no persistence)."
+            echo -e "Exit private session using 'history-guardian public' command (see history).${_hg_NC}"
         else
             if [ "${HISTORY_GUARDIAN_PRINT_MESSAGE_AT_EACH_COMMAND}" = "true" ]; then
                 if [ "${HISTORY_GUARDIAN_GLOBAL_HISTORY_FILE}" != "${HISTORY_GUARDIAN_CURRENT_HISTORY_FILE}" ]; then
-                    echo "---"
-                    echo "Saving history only for project: ${HISTORY_GUARDIAN_CURRENT_PROJECT_NAME}"
+                    echo -e "${_hg_BGreen}---"
+                    echo -e "Saving history only for project: ${HISTORY_GUARDIAN_CURRENT_PROJECT_NAME}${_hg_NC}"
                 fi
             fi
         fi
     else
         # Not sure it's good to display a message if thing is disabled
         if [ "${HISTORY_GUARDIAN_PRINT_MESSAGE_AT_EACH_COMMAND}" = "true" ]; then
-            echo "---"
-            echo "/!\\ history-guardian: disabled"
+            echo -e "${_hg_BPurple}---"
+            echo -e "/!\\ history-guardian: disabled${_hg_NC}"
         fi
     fi
 }
