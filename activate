@@ -163,11 +163,22 @@ function _hg_init_dir() {
 
 # remove local history file
 function _hg_clean_dir() {
-    if [ "${HISTORY_GUARDIAN_GLOBAL_HISTORY_FILE}" != "${HISTORY_GUARDIAN_CURRENT_HISTORY_FILE}" ]; then
-        rm -f "${HISTORY_GUARDIAN_CURRENT_HISTORY_FILE}"
+    if [ "${HISTORY_GUARDIAN_GLOBAL_HISTORY_FILE}" == "${HISTORY_GUARDIAN_CURRENT_HISTORY_FILE}" ]; then
+        return
     fi
 
-    _hg_update_state
+    read -p "Are you sure? " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        _hg_file_to_delete="${HISTORY_GUARDIAN_CURRENT_HISTORY_FILE}"
+        rm -f "${_hg_file_to_delete}"
+
+        _hg_update_state
+
+        # Prevent history to create a new file
+        rm -f "${_hg_file_to_delete}"
+        unset _hg_file_to_delete
+    fi
 }
 
 function _hg_print_boolean() {
@@ -357,7 +368,6 @@ if [ -z "${HISTORY_GUARDIAN_ACTIVATED}" ]; then
 
     # Add commands directly inside history (not at terminal close)
     #setopt      incappendhistory
-    # TODO: fixme: if history -n, then clear command does not work
     export PROMPT_COMMAND="history -a;history -n;_hg_show_msg;$PROMPT_COMMAND"
 
     # Ensure current mode is valid:
