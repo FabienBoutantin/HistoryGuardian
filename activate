@@ -303,6 +303,16 @@ function _hg_show_msg() {
     fi
 }
 
+function _hg_prompt_command() {
+    local old_return_code=$?
+    history -a;history -n;
+
+    _hg_show_msg
+
+    # Ensure the exit code was not modified by our function:
+    (exit ${old_returncode}) && true
+}
+
 # main script to help user init, clear, etc
 function _hg_history_guardian() {
     case "${1}" in
@@ -375,7 +385,7 @@ if [ -z "${HISTORY_GUARDIAN_ACTIVATED}" ]; then
 
     # Add commands directly inside history (not at terminal close)
     #setopt      incappendhistory
-    export PROMPT_COMMAND="history -a;history -n;_hg_show_msg;$PROMPT_COMMAND"
+    export PROMPT_COMMAND="$PROMPT_COMMAND;_hg_prompt_command"
 
     # Ensure current mode is valid:
     _hg_update_state
