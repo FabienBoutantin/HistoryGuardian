@@ -207,25 +207,6 @@ function _hg_print_status() {
     echo -e "${_hg_BGreen}Global history file:${_hg_NC} ${HISTORY_GUARDIAN_GLOBAL_HISTORY_FILE}"
 }
 
-# help function for history-guardian
-function _hg_history_guardian_usage() {
-    echo "Usage: history-guardian <init|clean|clear|status|enable|disable|private|public|clean-private-sessions>"
-    echo "       - init: activate per directory history mode for the current directory (creating local history file if needed)"
-    echo "       - clean/clear:  delete local history and update history state accordingly"
-    echo ""
-    echo "       - status: prints usefull information about current state of history-guardian"
-    echo ""
-    echo "       - enable: enable history-guardian mechanism"
-    echo "       - disable: makes history-guardian not effective (almost like it is not activated)"
-    echo ""
-    echo "       - verbose: print message after each command"
-    echo "       - quiet: do not print message after each command (remove verbose action)"
-    echo ""
-    echo "       - private: use a not persistent history file (perfect for typing commands with passwords); history will be kept until returning to public mode"
-    echo "       - public: use the persistent history files as expected (mandatory when switching to private mode)"
-    echo "       - clean-private-sessions: remove all history files for any private session (usefull if terminal got killed before switching back to public)"
-}
-
 function _hg_enable() {
     HISTORY_GUARDIAN_ENABLED=true
 
@@ -305,12 +286,36 @@ function _hg_show_msg() {
 
 function _hg_prompt_command() {
     local old_return_code=$?
-    history -a;history -n;
+    if [ "${HISTORY_GUARDIAN_APPEND_COMMAND_TO_HISTORY}" = "true" ]; then
+        history -a;
+    fi
+    if [ "${HISTORY_GUARDIAN_RELOAD_HISTORY_AFTER_EACH_COMMAND}" = "true" ]; then
+        history -n;
+    fi
 
     _hg_show_msg
 
     # Ensure the exit code was not modified by our function:
     (exit ${old_returncode}) && true
+}
+
+# help function for history-guardian
+function _hg_history_guardian_usage() {
+    echo "Usage: history-guardian <init|clean|clear|status|enable|disable|private|public|clean-private-sessions>"
+    echo "       - init: activate per directory history mode for the current directory (creating local history file if needed)"
+    echo "       - clean/clear:  delete local history and update history state accordingly"
+    echo ""
+    echo "       - status: prints usefull information about current state of history-guardian"
+    echo ""
+    echo "       - enable: enable history-guardian mechanism"
+    echo "       - disable: makes history-guardian not effective (almost like it is not activated)"
+    echo ""
+    echo "       - verbose: print message after each command"
+    echo "       - quiet: do not print message after each command (remove verbose action)"
+    echo ""
+    echo "       - private: use a not persistent history file (perfect for typing commands with passwords); history will be kept until returning to public mode"
+    echo "       - public: use the persistent history files as expected (mandatory when switching to private mode)"
+    echo "       - clean-private-sessions: remove all history files for any private session (usefull if terminal got killed before switching back to public)"
 }
 
 # main script to help user init, clear, etc
@@ -364,6 +369,12 @@ if [ -z "${HISTORY_GUARDIAN_ACTIVATED}" ]; then
     if [ -z ${HISTORY_GUARDIAN_PRINT_MESSAGE_AT_EACH_COMMAND+x} ]; then
         export HISTORY_GUARDIAN_PRINT_MESSAGE_AT_EACH_COMMAND=false
     fi
+    if [ -z ${HISTORY_GUARDIAN_APPEND_COMMAND_TO_HISTORY+x} ]; then
+        export HISTORY_GUARDIAN_APPEND_COMMAND_TO_HISTORY=true
+    fi
+    if [ -z ${HISTORY_GUARDIAN_RELOAD_HISTORY_AFTER_EACH_COMMAND+x} ]; then
+        export HISTORY_GUARDIAN_RELOAD_HISTORY_AFTER_EACH_COMMAND=false
+    fi
 
 
     # define aliases to our commands
@@ -378,7 +389,7 @@ if [ -z "${HISTORY_GUARDIAN_ACTIVATED}" ]; then
 
     # Use append mode for history
     #setopt      appendhistory
-    shopt       -s histappend
+    #shopt       -s histappend
 
     # Share history between terminals
     #setopt      sharedhistory

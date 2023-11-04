@@ -48,6 +48,8 @@ function print_code(){
     echo "    #HISTORY_GUARDIAN_HISTORY_FILE_NAME=.hg_history  # defaults to .hg_history"
     echo "    #HISTORY_GUARDIAN_PROPOSE_ON_PROJECTS=false  # history guardian propose to init on git directories"
     echo "    #HISTORY_GUARDIAN_PRINT_MESSAGE_AT_EACH_COMMAND=true  # history guardian prints an informative message before terminal prompt"
+    echo "    #HISTORY_GUARDIAN_APPEND_COMMAND_TO_HISTORY=false  # Do not register each command directly in history (resister when closing terminal)"
+    echo "    #HISTORY_GUARDIAN_RELOAD_HISTORY_AFTER_EACH_COMMAND=true  # Reload history after each command (shares history between different terminals)"
     echo ""
     echo "    # Actually add history guardian to shell"
     echo "    source \"${actual_location}/activate\""
